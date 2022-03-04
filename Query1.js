@@ -17,9 +17,7 @@ MongoClient.connect(url, function (err, db) {
     ])
     .toArray(function (err, result) {
       if (err) throw err;
-      //console.log(result);
       var len = result.length;
-      //console.log(len);
       maxTokenId = result[0]._id;
 
       console.log(
@@ -30,33 +28,24 @@ MongoClient.connect(url, function (err, db) {
       );
       for (var i = 0; i < len; i++) {
         var x = result[i]._id;
-        //console.log(x);
         dict[x] = 0;
       }
-      //console.log(dict);
-      //console.log(result[0]._id);
     });
   dbo
     .collection("TestBlock")
     .find({})
     .toArray(function (err, result) {
       if (err) throw err;
-      //console.log(result);
       var len = result.length;
-      //console.log(result.length);
       for (var i = 0; i < len; i++) {
         let token_len = result[i].tokens.length;
         for (var j = 0; j < token_len; j++) {
           let a = ethers.BigNumber.from(dict[result[i].tokens[j]]);
-          //console.log("A", a);
           let b = ethers.BigNumber.from(result[i].amounts[j]);
-          //console.log("B", b);
           let sum = a.add(b);
-          //console.log(sum);
           dict[result[i].tokens[j]] = sum;
         }
       }
-      //console.log(dict);
       let bigresult = dict[maxTokenId];
       let bigresultint = bigresult.toBigInt();
       console.log(
