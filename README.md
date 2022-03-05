@@ -7,3 +7,6 @@
 **Quesry2.js**- Gives which route was used most of the time? Also, Calculates the total fee taken by that route (in USD).
 
 **Query3.js**- Gives how much fee for each token that Instadapp FLA earns (In USD).
+
+Screenshot of Result- 
+![](queryResult.png)
