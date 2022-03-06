@@ -5,8 +5,11 @@ var url = "mongodb://localhost:27017/";
 
 var totalAmountUSD = 0;
 var tokenAmounts = {};
-var tokenAmountsRoute = {};
+var tokenAmountsMaxRoute = {};
+var tokenAmountsAllRoute = {};
 var maxTokenId;
+var maxRouteId;
+const route1 = "0x01";
 MongoClient.connect(url, async function (err, db) {
   if (err) throw err;
   var dbo = db.db("admin");
@@ -32,7 +35,8 @@ MongoClient.connect(url, async function (err, db) {
       for (var i = 0; i < len; i++) {
         var x = result[i]._id;
         tokenAmounts[x] = 0;
-        tokenAmountsRoute[x] = 0;
+        tokenAmountsAllRoute[x] = 0;
+        tokenAmountsMaxRoute[x] = 0;
       }
     });
   dbo
@@ -71,18 +75,47 @@ MongoClient.connect(url, async function (err, db) {
     ])
     .toArray(function (err, result) {
       if (err) throw err;
-
-      console.log("The route used most times - " + result[0]._id);
+      maxRouteId = result[0]._id;
+      console.log("The route used most times - " + maxRouteId);
       console.log("Total count of the route used -" + result[0].quant);
+    });
 
-      for (let key in tokenAmounts) {
-        let amountEth = Number(ethers.utils.formatUnits(tokenAmounts[key]));
+  dbo
+    .collection("TestBlock")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      var len = result.length;
+      for (var i = 0; i < len; i++) {
+        if (result[i].route === maxRouteId) {
+          let token_len = result[i].tokens.length;
+          for (var j = 0; j < token_len; j++) {
+            let a = ethers.BigNumber.from(
+              tokenAmountsMaxRoute[result[i].tokens[j]]
+            );
+            let b = ethers.BigNumber.from(result[i].amounts[j]);
+            let sum = a.add(b);
+            tokenAmountsMaxRoute[result[i].tokens[j]] = sum;
+          }
+        }
+      }
+      for (let key in tokenAmountsMaxRoute) {
+        let amountEth = Number(
+          ethers.utils.formatUnits(tokenAmountsMaxRoute[key])
+        );
         let amountUSD = amountEth * Number(response.data[key]);
         totalAmountUSD += amountUSD;
       }
+      const route1FeePercent = 0.0009;
+      const routeOtherFeePercent = 0.0005;
+      if (maxRouteId != route1) {
+        var totalRouteFeeUSD = totalAmountUSD * routeOtherFeePercent;
+        console.log("if EXECUTED");
+      } else {
+        var totalRouteFeeUSD = totalAmountUSD * route1FeePercent;
+        console.log("else EXECUTED!");
+      }
       console.log("Total Amount through route (In USD)-", totalAmountUSD);
-      const routeFeePercent = 0.0009;
-      var totalRouteFeeUSD = totalAmountUSD * routeFeePercent;
       console.log("Total route Fee (In USD)-", totalRouteFeeUSD);
     });
 
@@ -96,29 +129,29 @@ MongoClient.connect(url, async function (err, db) {
       var len = result.length;
       for (var i = 0; i < len; i++) {
         let token_len = result[i].tokens.length;
-        const route1 = "0x01";
+
         for (var j = 0; j < token_len; j++) {
           if (result[i].route != route1) {
             let a = ethers.BigNumber.from(
-              tokenAmountsRoute[result[i].tokens[j]]
+              tokenAmountsAllRoute[result[i].tokens[j]]
             );
             let b = ethers.BigNumber.from(result[i].amounts[j]);
             let sum = a.add(b);
-            tokenAmountsRoute[result[i].tokens[j]] = sum;
+            tokenAmountsAllRoute[result[i].tokens[j]] = sum;
           }
         }
       }
 
-      for (let key in tokenAmountsRoute) {
+      for (let key in tokenAmountsAllRoute) {
         let amountEth = Number(
-          ethers.utils.formatUnits(tokenAmountsRoute[key])
+          ethers.utils.formatUnits(tokenAmountsAllRoute[key])
         );
         let amountUSD = amountEth * Number(response.data[key]);
         let feeAmountUSD = amountUSD * routeFeePercent;
-        tokenAmountsRoute[key] = feeAmountUSD;
+        tokenAmountsAllRoute[key] = feeAmountUSD;
       }
       console.log("Token wise Fees earned by Instadapp FLA (in USD)- ");
-      console.log(tokenAmountsRoute);
+      console.log(tokenAmountsAllRoute);
       db.close();
     });
 });
